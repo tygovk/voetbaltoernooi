@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTournament(data) {
+      return data.keys().hasAll(['name', 'teams', 'matches']) &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.teams is list && data.teams.size() <= 16 &&
+             data.matches is list && data.matches.size() <= 32;
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection check doc
+    match /test/{testId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Realtime tournaments document
+    match /tournaments/{tournamentId} {
+      allow get: if isValidId(tournamentId);
+      allow list: if true;
+      allow create, update: if isValidId(tournamentId) && isValidTournament(request.resource.data);
+      allow delete: if false;
+    }
+  }
+}

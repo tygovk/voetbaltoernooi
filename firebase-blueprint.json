@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Tournament": {
+      "title": "Tournament",
+      "description": "Voetbaltoernooi data including teams, matches, and settings",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Toernooinaam"
+        },
+        "location": {
+          "type": "string",
+          "description": "Toernooilocatie"
+        },
+        "date": {
+          "type": "string",
+          "description": "Toernooidatum"
+        },
+        "teams": {
+          "type": "array",
+          "description": "Lijst met 8 deelnemende teams"
+        },
+        "matches": {
+          "type": "array",
+          "description": "Poule- en knock-outwedstrijden inclusief troostfinale"
+        },
+        "adminPin": {
+          "type": "string",
+          "description": "Beheerderscode voor bewerken"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO tijdstempel van laatste synchronisatie"
+        }
+      },
+      "required": ["name", "teams", "matches"]
+    }
+  },
+  "firestore": {
+    "/tournaments/{tournamentId}": {
+      "schema": "Tournament",
+      "description": "Toernooigegevens gesynchroniseerd over alle toeschouwer- en beheerdersapparaten"
+    }
+  }
+}

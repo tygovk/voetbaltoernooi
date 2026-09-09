@@ -1,0 +1,6 @@
+{
+  "name": "Voetbaltoernooi Manager",
+  "description": "Interactieve toernooiapp voor een voetbaltoernooi met 8 teams, automatische standen, live knock-outfase en beheerder/toeschouwer modus.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
