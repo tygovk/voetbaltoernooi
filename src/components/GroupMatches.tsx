@@ -315,6 +315,43 @@ export const GroupMatches: React.FC<GroupMatchesProps> = ({
                 </div>
               </div>
 
+              {/* Goalscorers Row (Visible for spectators and admins) */}
+              {match.goals && match.goals.length > 0 && (
+                <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+                  {/* Home goals */}
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    {match.goals
+                      .filter((g) => g.teamId === match.homeTeamId)
+                      .map((g) => (
+                        <span
+                          key={g.id}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950/90 border border-emerald-800/40 text-emerald-300 font-medium text-[10px]"
+                        >
+                          <span>⚽</span>
+                          <span>{g.playerName}</span>
+                        </span>
+                      ))}
+                  </div>
+
+                  <span className="text-[10px] text-slate-500 shrink-0 font-bold">⚽</span>
+
+                  {/* Away goals */}
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end min-w-0 text-right">
+                    {match.goals
+                      .filter((g) => g.teamId === match.awayTeamId)
+                      .map((g) => (
+                        <span
+                          key={g.id}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950/90 border border-emerald-800/40 text-emerald-300 font-medium text-[10px]"
+                        >
+                          <span>⚽</span>
+                          <span>{g.playerName}</span>
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               {/* Inline Edit Action Buttons for Admin */}
               {isEditing && (
                 <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">

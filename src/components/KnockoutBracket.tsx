@@ -357,6 +357,43 @@ export const KnockoutBracket: React.FC<KnockoutBracketProps> = ({
 
         </div>
 
+        {/* Goalscorers Row (Visible to spectators and admins) */}
+        {match.goals && match.goals.length > 0 && (
+          <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+            {/* Home Goals */}
+            <div className="flex items-center gap-1 flex-wrap min-w-0">
+              {match.goals
+                .filter((g) => g.teamId === match.homeTeamId)
+                .map((g) => (
+                  <span
+                    key={g.id}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-emerald-300 font-medium text-[10px]"
+                  >
+                    <span>⚽</span>
+                    <span>{g.playerName}</span>
+                  </span>
+                ))}
+            </div>
+
+            <span className="text-[10px] text-slate-500 shrink-0 font-bold">⚽</span>
+
+            {/* Away Goals */}
+            <div className="flex items-center gap-1 flex-wrap justify-end min-w-0 text-right">
+              {match.goals
+                .filter((g) => g.teamId === match.awayTeamId)
+                .map((g) => (
+                  <span
+                    key={g.id}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-emerald-300 font-medium text-[10px]"
+                  >
+                    <span>⚽</span>
+                    <span>{g.playerName}</span>
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Penalties Notice / Steppers if Tied */}
         {isEditing && isTied && (
           <div className="mt-2.5 p-2 rounded-xl bg-amber-950/40 border border-amber-500/40 text-center" onClick={(e) => e.stopPropagation()}>

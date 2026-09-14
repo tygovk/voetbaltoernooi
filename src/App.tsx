@@ -768,7 +768,7 @@ export default function App() {
               onSelectMatch={(m) => {
                 const idx = tournament.matches.findIndex((item) => item.id === m.id);
                 if (idx !== -1) setHighlightMatchIndex(idx);
-                if (role === 'admin') setSelectedMatchForScoreModal(m);
+                setSelectedMatchForScoreModal(m);
               }}
             />
 
@@ -782,39 +782,105 @@ export default function App() {
               onSelectMatch={(m) => {
                 const idx = tournament.matches.findIndex((item) => item.id === m.id);
                 if (idx !== -1) setHighlightMatchIndex(idx);
-                if (role === 'admin') setSelectedMatchForScoreModal(m);
+                setSelectedMatchForScoreModal(m);
               }}
             />
 
-            {/* Quick Topscorers Preview on Overview page */}
-            {topscorers.length > 0 && (
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Topscorers Section on Overview for Spectators & Admins */}
+            <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 border border-amber-500/30 p-5 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
                     <Flame className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                      Topscorer van het toernooi: {topscorers[0].playerName}
-                      <span className="text-xs font-mono font-black text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/40">
-                        {topscorers[0].goals} doelpunten
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                        Topscorers Klassement
+                      </h3>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                        Live Stand
                       </span>
-                    </h4>
+                    </div>
                     <p className="text-xs text-slate-400">
-                      Team: {topscorers[0].teamName} • {topscorers.length} spelers op de topscorerslijst
+                      Real-time ranglijst van alle doelpuntenmakers in het toernooi
                     </p>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab('topscorers')}
-                  className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold border border-slate-700 transition"
+                  onClick={() => {
+                    setActiveTab('topscorers');
+                    sounds.playClick();
+                  }}
+                  className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-950/40 transition active:scale-95 shrink-0"
                 >
-                  Bekijk Volledige Ranking →
+                  <span>Volledige Ranglijst Bekijken</span>
+                  <span>→</span>
                 </button>
               </div>
-            )}
+
+              {topscorers.length > 0 ? (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {topscorers.slice(0, 6).map((scorer, index) => (
+                    <div
+                      key={`${scorer.playerName}-${scorer.teamId}`}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition ${
+                        index === 0
+                          ? 'bg-amber-500/15 border-amber-500/50 shadow-md'
+                          : index === 1
+                          ? 'bg-slate-800/80 border-slate-600'
+                          : index === 2
+                          ? 'bg-amber-950/30 border-amber-700/40'
+                          : 'bg-slate-950/60 border-slate-800/80'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                            index === 0
+                              ? 'bg-amber-400 text-slate-950'
+                              : index === 1
+                              ? 'bg-slate-300 text-slate-950'
+                              : index === 2
+                              ? 'bg-amber-700 text-white'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {index + 1}
+                        </span>
+
+                        <div className="min-w-0">
+                          <span className="block text-sm font-bold text-white truncate">
+                            {scorer.playerName}
+                          </span>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: scorer.teamColor }}
+                            />
+                            <span className="truncate">{scorer.teamName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 font-mono font-black text-amber-300 bg-black/40 px-2.5 py-1 rounded-lg border border-amber-500/30 text-xs shrink-0">
+                        <span>⚽</span>
+                        <span>{scorer.goals}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-center text-xs text-slate-400">
+                  <p>Nog geen doelpunten geregistreerd.</p>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Zodra wedstrijden starten en er gescoord wordt, verschijnen de topscorers hier direct live voor iedereen!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -833,7 +899,7 @@ export default function App() {
               onSelectMatch={(m) => {
                 const idx = tournament.matches.findIndex((item) => item.id === m.id);
                 if (idx !== -1) setHighlightMatchIndex(idx);
-                if (role === 'admin') setSelectedMatchForScoreModal(m);
+                setSelectedMatchForScoreModal(m);
               }}
             />
           </div>
@@ -850,7 +916,7 @@ export default function App() {
               onSelectMatch={(m) => {
                 const idx = tournament.matches.findIndex((item) => item.id === m.id);
                 if (idx !== -1) setHighlightMatchIndex(idx);
-                if (role === 'admin') setSelectedMatchForScoreModal(m);
+                setSelectedMatchForScoreModal(m);
               }}
             />
           </div>
@@ -933,6 +999,7 @@ export default function App() {
         isOpen={Boolean(selectedMatchForScoreModal)}
         onClose={() => setSelectedMatchForScoreModal(null)}
         teams={tournament.teams}
+        role={role}
         onSave={handleUpdateScore}
       />
 

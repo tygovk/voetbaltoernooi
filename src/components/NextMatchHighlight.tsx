@@ -70,7 +70,7 @@ export const NextMatchHighlight: React.FC<NextMatchHighlightProps> = ({
     match?.awayScore,
     match?.homePenalties,
     match?.awayPenalties,
-    match?.goals,
+    JSON.stringify(match?.goals),
   ]);
 
   const homeTeam = teams.find((t) => t.id === match?.homeTeamId);
@@ -699,6 +699,46 @@ export const NextMatchHighlight: React.FC<NextMatchHighlightProps> = ({
             </div>
 
           </div>
+
+          {/* Central Goalscorers Summary Bar for Spectators & Admins */}
+          {localGoals.length > 0 && (
+            <div className="relative z-10 mt-5 pt-4 border-t border-emerald-900/50 flex flex-col items-center">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider mb-2.5">
+                <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span>Doelpuntenmakers ({localGoals.length})</span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-2 max-w-3xl">
+                {localGoals.map((g) => {
+                  const team = teams.find((t) => t.id === g.teamId);
+                  return (
+                    <span
+                      key={g.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-950/90 border border-emerald-700/50 text-xs font-semibold text-white shadow"
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: team?.color || '#10b981' }}
+                      />
+                      <span className="text-emerald-400">⚽</span>
+                      <span>{g.playerName}</span>
+                      <span className="text-[10px] text-slate-400 font-normal">({team?.name})</span>
+                      {role === 'admin' && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGoal(g.id)}
+                          className="ml-1 text-slate-400 hover:text-rose-400 transition"
+                          title="Doelpunt wissen"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
