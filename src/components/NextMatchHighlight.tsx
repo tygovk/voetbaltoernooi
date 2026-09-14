@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Match, Team, UserRole, GoalEvent } from '../types';
 import { sounds } from '../utils/audio';
+import { getGoalScoreDisplay, enrichGoalsWithScores } from '../utils/goals';
 
 interface NextMatchHighlightProps {
   currentMatch: Match | null;
@@ -89,18 +90,21 @@ export const NextMatchHighlight: React.FC<NextMatchHighlightProps> = ({
 
     sounds.playGoal();
 
+    const newHome = teamType === 'home' ? localHomeScore + 1 : localHomeScore;
+    const newAway = teamType === 'away' ? localAwayScore + 1 : localAwayScore;
+
     const newGoal: GoalEvent = {
       id: `goal-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       teamId,
       playerName: playerName.trim(),
       minute: Math.floor(Math.random() * 15) + 1,
+      scoreDisplay: `${newHome}-${newAway}`,
+      homeScoreAtGoal: newHome,
+      awayScoreAtGoal: newAway,
     };
 
     const newGoals = [...localGoals, newGoal];
     setLocalGoals(newGoals);
-
-    const newHome = teamType === 'home' ? localHomeScore + 1 : localHomeScore;
-    const newAway = teamType === 'away' ? localAwayScore + 1 : localAwayScore;
 
     if (teamType === 'home') setLocalHomeScore(newHome);
     if (teamType === 'away') setLocalAwayScore(newAway);
@@ -125,7 +129,8 @@ export const NextMatchHighlight: React.FC<NextMatchHighlightProps> = ({
     const goalToRemove = localGoals.find((g) => g.id === goalId);
     if (!goalToRemove) return;
 
-    const newGoals = localGoals.filter((g) => g.id !== goalId);
+    const remainingGoals = localGoals.filter((g) => g.id !== goalId);
+    const newGoals = enrichGoalsWithScores(remainingGoals, match.homeTeamId);
     setLocalGoals(newGoals);
 
     const isHome = goalToRemove.teamId === match.homeTeamId;
@@ -385,24 +390,32 @@ export const NextMatchHighlight: React.FC<NextMatchHighlightProps> = ({
               {/* Scored Goals List (Home) */}
               {homeGoalsList.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5 justify-center md:justify-end">
-                  {homeGoalsList.map((g) => (
-                    <span
-                      key={g.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-xs text-emerald-300"
-                    >
-                      <span>⚽ {g.playerName}</span>
-                      {role === 'admin' && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveGoal(g.id)}
-                          className="text-slate-400 hover:text-rose-400 ml-1"
-                          title="Doelpunt wissen"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </span>
-                  ))}
+                  {homeGoalsList.map((g) => {
+                    const score = getGoalScoreDisplay(g, localGoals, match?.homeTeamId);
+                    return (
+                      <span
+                        key={g.id}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-xs text-emerald-300"
+                      >
+                        <span>⚽ {g.playerName}</span>
+                        {score && (
+                          <span className="font-mono font-black text-amber-300 bg-amber-950/90 px-1.5 py-0.2 rounded text-[10px] border border-amber-500/40">
+                            {score}
+                          </span>
+                        )}
+                        {role === 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGoal(g.id)}
+                            className="text-slate-400 hover:text-rose-400 ml-1"
+                            title="Doelpunt wissen"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -676,24 +689,32 @@ export const NextMatchHighlight: React.FC<NextMatchHighlightProps> = ({
               {/* Scored Goals List (Away) */}
               {awayGoalsList.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5 justify-center md:justify-start">
-                  {awayGoalsList.map((g) => (
-                    <span
-                      key={g.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-xs text-emerald-300"
-                    >
-                      <span>⚽ {g.playerName}</span>
-                      {role === 'admin' && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveGoal(g.id)}
-                          className="text-slate-400 hover:text-rose-400 ml-1"
-                          title="Doelpunt wissen"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </span>
-                  ))}
+                  {awayGoalsList.map((g) => {
+                    const score = getGoalScoreDisplay(g, localGoals, match?.homeTeamId);
+                    return (
+                      <span
+                        key={g.id}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-xs text-emerald-300"
+                      >
+                        <span>⚽ {g.playerName}</span>
+                        {score && (
+                          <span className="font-mono font-black text-amber-300 bg-amber-950/90 px-1.5 py-0.2 rounded text-[10px] border border-amber-500/40">
+                            {score}
+                          </span>
+                        )}
+                        {role === 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGoal(g.id)}
+                            className="text-slate-400 hover:text-rose-400 ml-1"
+                            title="Doelpunt wissen"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -711,17 +732,23 @@ export const NextMatchHighlight: React.FC<NextMatchHighlightProps> = ({
               <div className="flex flex-wrap items-center justify-center gap-2 max-w-3xl">
                 {localGoals.map((g) => {
                   const team = teams.find((t) => t.id === g.teamId);
+                  const score = getGoalScoreDisplay(g, localGoals, match?.homeTeamId);
                   return (
                     <span
                       key={g.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-950/90 border border-emerald-700/50 text-xs font-semibold text-white shadow"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/90 border border-emerald-700/50 text-xs font-semibold text-white shadow"
                     >
                       <span
-                        className="w-2 h-2 rounded-full shrink-0"
+                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow"
                         style={{ backgroundColor: team?.color || '#10b981' }}
                       />
                       <span className="text-emerald-400">⚽</span>
-                      <span>{g.playerName}</span>
+                      <span className="text-white font-bold">{g.playerName}</span>
+                      {score && (
+                        <span className="font-mono font-black text-amber-300 bg-amber-950/90 px-1.5 py-0.5 rounded text-[11px] border border-amber-500/50 shadow-sm">
+                          {score}
+                        </span>
+                      )}
                       <span className="text-[10px] text-slate-400 font-normal">({team?.name})</span>
                       {role === 'admin' && (
                         <button

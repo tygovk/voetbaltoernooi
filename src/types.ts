@@ -22,6 +22,9 @@ export interface GoalEvent {
   teamId: string;
   playerName: string;
   minute?: number;
+  scoreDisplay?: string; // e.g. "1-0", "1-3"
+  homeScoreAtGoal?: number;
+  awayScoreAtGoal?: number;
 }
 
 export interface Match {
