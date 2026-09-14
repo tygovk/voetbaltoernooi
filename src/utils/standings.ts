@@ -1,4 +1,4 @@
-import { Match, Team, TeamStanding, FinalTournamentRankingItem } from '../types';
+import { Match, Team, TeamStanding, FinalTournamentRankingItem, TopscorerItem } from '../types';
 
 /**
  * Calculates standings for a specific group according to official tournament rules:
@@ -439,4 +439,80 @@ export function calculateTournamentFinalRankings(
   ];
 
   return rankings;
+}
+
+/**
+ * Calculates the top scorers leaderboard based on all goals scored across matches.
+ * Automatically updates whenever goals or match results change.
+ */
+export function calculateTopscorers(matches: Match[], teams: Team[]): TopscorerItem[] {
+  const teamMap = new Map<string, Team>(teams.map((t) => [t.id, t]));
+  const scorersMap = new Map<
+    string,
+    {
+      playerName: string;
+      teamId: string;
+      goals: number;
+      matchSummaries: Map<string, number>;
+    }
+  >();
+
+  matches.forEach((m) => {
+    if (Array.isArray(m.goals) && m.goals.length > 0) {
+      m.goals.forEach((g) => {
+        const name = g.playerName?.trim();
+        if (!name) return;
+        const key = `${g.teamId || ''}:::${name.toLowerCase()}`;
+        let item = scorersMap.get(key);
+        if (!item) {
+          item = {
+            playerName: name,
+            teamId: g.teamId,
+            goals: 0,
+            matchSummaries: new Map(),
+          };
+          scorersMap.set(key, item);
+        }
+        item.goals += 1;
+        const matchLabel = m.label || `Wedstrijd #${m.matchNumber}`;
+        item.matchSummaries.set(matchLabel, (item.matchSummaries.get(matchLabel) || 0) + 1);
+      });
+    }
+  });
+
+  const list: TopscorerItem[] = Array.from(scorersMap.values()).map((entry) => {
+    const team = teamMap.get(entry.teamId);
+    return {
+      rank: 1,
+      playerName: entry.playerName,
+      teamId: entry.teamId,
+      teamName: team?.name || 'Onbekend team',
+      teamColor: team?.color || '#10b981',
+      goals: entry.goals,
+      matchGoalsSummary: Array.from(entry.matchSummaries.entries()).map(([matchLabel, count]) => ({
+        matchLabel,
+        count,
+      })),
+    };
+  });
+
+  // Sort descending by goals, then alphabetically by player name
+  list.sort((a, b) => {
+    if (b.goals !== a.goals) {
+      return b.goals - a.goals;
+    }
+    return a.playerName.localeCompare(b.playerName);
+  });
+
+  // Calculate ranks with standard sports tie handling
+  let currentRank = 1;
+  return list.map((item, index) => {
+    if (index > 0 && item.goals < list[index - 1].goals) {
+      currentRank = index + 1;
+    }
+    return {
+      ...item,
+      rank: currentRank,
+    };
+  });
 }

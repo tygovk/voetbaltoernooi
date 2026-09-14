@@ -268,6 +268,41 @@ export const Header: React.FC<HeaderProps> = ({
               </>
             )}
 
+            {/* Undo Last Result if available */}
+            {canUndo && onUndoLastResult && (
+              <button
+                id="btn-header-undo"
+                type="button"
+                onClick={onUndoLastResult}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-950/60 border border-amber-600/40 text-xs font-semibold text-amber-300 hover:bg-amber-900/60 transition shadow"
+                title={lastUndoDescription || 'Laatste uitslag ongedaan maken'}
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Herstel uitslag</span>
+                {undoCount > 1 && <span className="text-[10px] opacity-75">({undoCount})</span>}
+              </button>
+            )}
+
+            {/* Quick Toernooi op 0 button for Admin */}
+            {role === 'admin' && (
+              <button
+                id="btn-header-quick-reset"
+                type="button"
+                onClick={() => {
+                  if (onOpenResetScoresModal) {
+                    onOpenResetScoresModal();
+                  } else {
+                    onResetScores();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 hover:text-white text-xs font-bold transition shadow cursor-pointer"
+                title="Toernooi op 0 zetten (alle uitslagen en doelpunten wissen)"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden md:inline">Toernooi op 0</span>
+              </button>
+            )}
+
             {/* Audio Toggle */}
             <button
               id="btn-toggle-sound"
@@ -344,7 +379,11 @@ export const Header: React.FC<HeaderProps> = ({
                       type="button"
                       onClick={() => {
                         setShowMenu(false);
-                        onOpenResetScoresModal?.();
+                        if (onOpenResetScoresModal) {
+                          onOpenResetScoresModal();
+                        } else {
+                          onResetScores();
+                        }
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-200 hover:bg-slate-800 rounded-lg transition"
                     >
@@ -356,7 +395,7 @@ export const Header: React.FC<HeaderProps> = ({
                       type="button"
                       onClick={() => {
                         setShowMenu(false);
-                        onOpenResetScoresModal?.();
+                        onResetAll();
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-rose-300 hover:bg-rose-950/40 rounded-lg transition"
                     >

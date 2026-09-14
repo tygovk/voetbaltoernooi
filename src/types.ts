@@ -10,11 +10,19 @@ export interface Team {
   group: 'A' | 'B';
   color: string; // Tailwind color or hex for jersey/badge
   bgGradient: string;
+  logoUrl?: string;
 }
 
 export type MatchStage = 'group' | 'semifinal' | 'third_place' | 'final';
 
 export type MatchStatus = 'scheduled' | 'live' | 'finished';
+
+export interface GoalEvent {
+  id: string;
+  teamId: string;
+  playerName: string;
+  minute?: number;
+}
 
 export interface Match {
   id: string;
@@ -31,6 +39,17 @@ export interface Match {
   status: MatchStatus;
   pitch: string; // e.g. "Veld 1"
   scheduledTime: string; // e.g. "10:00"
+  goals?: GoalEvent[]; // doelpuntenmakers voor topscorersrangschikking
+}
+
+export interface TopscorerItem {
+  rank: number;
+  playerName: string;
+  teamId: string;
+  teamName: string;
+  teamColor: string;
+  goals: number;
+  matchGoalsSummary?: { matchLabel: string; count: number }[];
 }
 
 export interface TeamStanding {

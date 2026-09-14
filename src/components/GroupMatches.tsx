@@ -277,13 +277,17 @@ export const GroupMatches: React.FC<GroupMatchesProps> = ({
                       type="button"
                       onClick={() => onSelectMatch(match)}
                       className={`px-2.5 py-1 rounded-lg font-mono font-bold text-sm tracking-wider transition ${
-                        isFinished
+                        isLive
+                          ? 'bg-rose-600 text-white shadow-md shadow-rose-950/50 animate-pulse border border-rose-400'
+                          : isFinished
                           ? 'bg-slate-950 text-white border border-slate-800 hover:border-emerald-500/40'
                           : 'bg-slate-800/80 text-slate-400 hover:text-white'
                       }`}
-                      title="Klik om in Volgende Wedstrijd highlight te tonen"
+                      title={isLive ? 'Live wedstrijd - klik voor details' : 'Klik om in Volgende Wedstrijd highlight te tonen'}
                     >
-                      {isFinished ? `${match.homeScore} - ${match.awayScore}` : 'vs'}
+                      {isLive || isFinished
+                        ? `${match.homeScore !== null ? match.homeScore : 0} - ${match.awayScore !== null ? match.awayScore : 0}`
+                        : 'vs'}
                     </button>
                   )}
                 </div>

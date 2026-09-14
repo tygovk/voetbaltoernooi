@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, RotateCcw, Flame, Users, Trophy } from 'lucide-react';
-import { Match, Team } from '../types';
+import { X, Check, RotateCcw, Flame, Users, Trophy, Plus, Radio, Play } from 'lucide-react';
+import { Match, Team, GoalEvent } from '../types';
 import { sounds } from '../utils/audio';
 
 interface ScoreModalProps {
@@ -14,7 +14,8 @@ interface ScoreModalProps {
     awayScore: number | null,
     status?: Match['status'],
     homePenalties?: number | null,
-    awayPenalties?: number | null
+    awayPenalties?: number | null,
+    goals?: GoalEvent[]
   ) => void;
 }
 
@@ -29,6 +30,7 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
   const [awayScore, setAwayScore] = useState<number>(0);
   const [homePens, setHomePens] = useState<number>(0);
   const [awayPens, setAwayPens] = useState<number>(0);
+  const [goals, setGoals] = useState<GoalEvent[]>([]);
 
   useEffect(() => {
     if (match) {
@@ -36,6 +38,7 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
       setAwayScore(match.awayScore ?? 0);
       setHomePens(match.homePenalties ?? 0);
       setAwayPens(match.awayPenalties ?? 0);
+      setGoals(match.goals || []);
     }
   }, [match]);
 
@@ -47,7 +50,35 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
   const isKnockout = match.stage !== 'group';
   const isTied = homeScore === awayScore;
 
-  const handleSave = () => {
+  const handleAddGoal = (teamType: 'home' | 'away', playerName: string) => {
+    const teamId = teamType === 'home' ? match.homeTeamId : match.awayTeamId;
+    if (!teamId) return;
+
+    sounds.playGoal();
+    const newGoal: GoalEvent = {
+      id: `goal-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      teamId,
+      playerName: playerName.trim(),
+      minute: Math.floor(Math.random() * 15) + 1,
+    };
+
+    setGoals([...goals, newGoal]);
+    if (teamType === 'home') setHomeScore((prev) => prev + 1);
+    else setAwayScore((prev) => prev + 1);
+  };
+
+  const handleRemoveGoal = (goalId: string) => {
+    const g = goals.find((item) => item.id === goalId);
+    if (!g) return;
+    setGoals(goals.filter((item) => item.id !== goalId));
+    if (g.teamId === match.homeTeamId) {
+      setHomeScore((prev) => Math.max(0, prev - 1));
+    } else {
+      setAwayScore((prev) => Math.max(0, prev - 1));
+    }
+  };
+
+  const handleSaveFinished = () => {
     sounds.playGoal();
     onSave(
       match.id,
@@ -55,19 +86,37 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
       awayScore,
       'finished',
       isKnockout && isTied ? homePens : null,
-      isKnockout && isTied ? awayPens : null
+      isKnockout && isTied ? awayPens : null,
+      goals
+    );
+    onClose();
+  };
+
+  const handleSaveLive = () => {
+    sounds.playWhistle();
+    onSave(
+      match.id,
+      homeScore,
+      awayScore,
+      'live',
+      isKnockout && isTied ? homePens : null,
+      isKnockout && isTied ? awayPens : null,
+      goals
     );
     onClose();
   };
 
   const handleClear = () => {
-    onSave(match.id, null, null, 'scheduled', null, null);
+    onSave(match.id, null, null, 'scheduled', null, null, []);
     onClose();
   };
 
+  const homeGoals = goals.filter((g) => g.teamId === match.homeTeamId);
+  const awayGoals = goals.filter((g) => g.teamId === match.awayTeamId);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden p-6">
+      <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden p-6 max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -89,42 +138,81 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
         </div>
 
         {/* Score Counters */}
-        <div className="py-6">
+        <div className="py-5">
           <div className="grid grid-cols-11 items-center gap-2">
             
             {/* Home Team */}
             <div className="col-span-5 text-center flex flex-col items-center">
               <span
-                className="w-4 h-4 rounded-full mb-2 shadow"
+                className="w-4 h-4 rounded-full mb-1.5 shadow"
                 style={{ backgroundColor: home?.color || '#64748b' }}
               />
-              <span className="font-extrabold text-base sm:text-lg text-white line-clamp-1">
+              <span className="font-extrabold text-sm sm:text-base text-white line-clamp-1">
                 {home?.name || 'Onbekend'}
-              </span>
-              <span className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                {home?.players.join(', ')}
               </span>
 
               {/* Counter Buttons */}
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-2 mt-3">
                 <button
                   type="button"
                   onClick={() => setHomeScore(Math.max(0, homeScore - 1))}
-                  className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xl active:scale-95 shadow"
+                  className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg active:scale-95 shadow"
                 >
                   -
                 </button>
-                <span className="text-4xl font-black text-white font-mono w-12 text-center">
+                <span className="text-3xl sm:text-4xl font-black text-white font-mono w-10 text-center">
                   {homeScore}
                 </span>
                 <button
                   type="button"
                   onClick={() => setHomeScore(homeScore + 1)}
-                  className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xl active:scale-95 shadow"
+                  className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg active:scale-95 shadow"
                 >
                   +
                 </button>
               </div>
+
+              {/* Player Goal Assign Buttons */}
+              {home && home.players.length > 0 && (
+                <div className="mt-3 w-full">
+                  <span className="text-[10px] uppercase font-bold text-amber-300 block mb-1">
+                    + Goal toekennen:
+                  </span>
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {home.players.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleAddGoal('home', p)}
+                        className="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 text-[11px] font-semibold transition active:scale-95 cursor-pointer"
+                      >
+                        + {p.split(' ')[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Goals list */}
+              {homeGoals.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                  {homeGoals.map((g) => (
+                    <span
+                      key={g.id}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-emerald-300"
+                    >
+                      <span>⚽ {g.playerName.split(' ')[0]}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGoal(g.id)}
+                        className="text-slate-400 hover:text-rose-400 ml-0.5"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Divider */}
@@ -135,43 +223,82 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
             {/* Away Team */}
             <div className="col-span-5 text-center flex flex-col items-center">
               <span
-                className="w-4 h-4 rounded-full mb-2 shadow"
+                className="w-4 h-4 rounded-full mb-1.5 shadow"
                 style={{ backgroundColor: away?.color || '#64748b' }}
               />
-              <span className="font-extrabold text-base sm:text-lg text-white line-clamp-1">
+              <span className="font-extrabold text-sm sm:text-base text-white line-clamp-1">
                 {away?.name || 'Onbekend'}
-              </span>
-              <span className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                {away?.players.join(', ')}
               </span>
 
               {/* Counter Buttons */}
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-2 mt-3">
                 <button
                   type="button"
                   onClick={() => setAwayScore(Math.max(0, awayScore - 1))}
-                  className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xl active:scale-95 shadow"
+                  className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg active:scale-95 shadow"
                 >
                   -
                 </button>
-                <span className="text-4xl font-black text-white font-mono w-12 text-center">
+                <span className="text-3xl sm:text-4xl font-black text-white font-mono w-10 text-center">
                   {awayScore}
                 </span>
                 <button
                   type="button"
                   onClick={() => setAwayScore(awayScore + 1)}
-                  className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xl active:scale-95 shadow"
+                  className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg active:scale-95 shadow"
                 >
                   +
                 </button>
               </div>
+
+              {/* Player Goal Assign Buttons */}
+              {away && away.players.length > 0 && (
+                <div className="mt-3 w-full">
+                  <span className="text-[10px] uppercase font-bold text-amber-300 block mb-1">
+                    + Goal toekennen:
+                  </span>
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {away.players.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleAddGoal('away', p)}
+                        className="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/40 text-[11px] font-semibold transition active:scale-95 cursor-pointer"
+                      >
+                        + {p.split(' ')[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Goals list */}
+              {awayGoals.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                  {awayGoals.map((g) => (
+                    <span
+                      key={g.id}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-emerald-300"
+                    >
+                      <span>⚽ {g.playerName.split(' ')[0]}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGoal(g.id)}
+                        className="text-slate-400 hover:text-rose-400 ml-0.5"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>
 
           {/* Penalties for Knockout */}
           {isKnockout && isTied && (
-            <div className="mt-6 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-center">
+            <div className="mt-5 p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-center">
               <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block mb-2">
                 Gelijke stand in knock-out: Vul strafschoppen in
               </span>
@@ -221,11 +348,11 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+        <div className="pt-3.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
             onClick={handleClear}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-950/40 transition flex items-center gap-1"
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-950/40 transition flex items-center gap-1"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Uitslag Wissen
@@ -239,13 +366,24 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
             >
               Annuleren
             </button>
+
             <button
               type="button"
-              onClick={handleSave}
-              className="px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md flex items-center gap-1"
+              onClick={handleSaveLive}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-md flex items-center gap-1 cursor-pointer"
+              title="Zet op 'Live' zodat anderen de tussenstand direct zien"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              Live Stand Uitzenden
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveFinished}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md flex items-center gap-1 cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
-              Opslaan
+              Eindstand Opslaan
             </button>
           </div>
         </div>

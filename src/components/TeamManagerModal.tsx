@@ -4,10 +4,10 @@ import {
   Users,
   Check,
   RotateCcw,
-  Shuffle,
-  Shield,
   Palette,
-  AlertCircle,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 import { Team } from '../types';
 import { DEFAULT_TEAMS } from '../data/defaultTournament';
@@ -42,6 +42,7 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [selectedGroupTab, setSelectedGroupTab] = useState<'A' | 'B'>('A');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showConfirmDefault, setShowConfirmDefault] = useState(false);
+  const [dragOverTeamId, setDragOverTeamId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -74,6 +75,27 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     );
   };
 
+  const handleFileDrop = (teamId: string, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Sleep een geldig afbeeldingsbestand (PNG, JPG, SVG, WebP) in het vak.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setDraftTeams((prev) =>
+        prev.map((t) => (t.id === teamId ? { ...t, logoUrl: dataUrl } : t))
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = (teamId: string) => {
+    setDraftTeams((prev) =>
+      prev.map((t) => (t.id === teamId ? { ...t, logoUrl: undefined } : t))
+    );
+  };
+
   const handleResetToDefault = () => {
     setDraftTeams(JSON.parse(JSON.stringify(DEFAULT_TEAMS)));
     setShowConfirmDefault(false);
@@ -81,15 +103,31 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   const handleSave = () => {
-    const groupACount = draftTeams.filter((t) => t.group === 'A').length;
-    const groupBCount = draftTeams.filter((t) => t.group === 'B').length;
+    // Validation: Check that both groups have 4 teams
+    const groupA = draftTeams.filter((t) => t.group === 'A');
+    const groupB = draftTeams.filter((t) => t.group === 'B');
 
-    if (groupACount !== 4 || groupBCount !== 4) {
-      setErrorMessage(`Er moeten precies 4 teams in Groep A en 4 in Groep B zitten. Nu: Groep A (${groupACount}), Groep B (${groupBCount}).`);
+    if (groupA.length !== 4 || groupB.length !== 4) {
+      setErrorMessage(`Elke poule moet exact 4 teams bevatten (Groep A: ${groupA.length}, Groep B: ${groupB.length}).`);
       return;
     }
 
-    setErrorMessage(null);
+    // Check for empty team names
+    const emptyTeam = draftTeams.find((t) => !t.name.trim());
+    if (emptyTeam) {
+      setErrorMessage('Elk team moet een geldige naam hebben.');
+      return;
+    }
+
+    // Check that every team has at least 3 players named
+    const incompleteTeam = draftTeams.find(
+      (t) => t.players.filter((p) => p.trim().length > 0).length < 3
+    );
+    if (incompleteTeam) {
+      setErrorMessage(`Team "${incompleteTeam.name}" moet minimaal 3 spelersnamen hebben.`);
+      return;
+    }
+
     onSaveTeams(draftTeams);
     onClose();
   };
@@ -100,22 +138,14 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
       <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden">
         
-        {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-              <Users className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
-                Teams & Spelers Instellen
-              </h2>
-              <p className="text-xs text-slate-400">
-                8 teams in totaal • 3 spelers per team (3v3 format)
-              </p>
-            </div>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-lg font-bold text-white">
+              Teams & Spelers Beheren
+            </h3>
           </div>
-
           <button
             type="button"
             onClick={onClose}
@@ -199,7 +229,7 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         {/* Content Body: Teams List */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {groupTeams.map((team, tIdx) => (
+            {groupTeams.map((team) => (
               <div
                 key={team.id}
                 className="rounded-xl p-4 bg-slate-950/70 border border-slate-800 shadow-md space-y-3"
@@ -207,10 +237,19 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                 {/* Team Header & Color Picker */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1">
-                    <span
-                      className="w-4 h-4 rounded-full shrink-0 shadow-sm"
-                      style={{ backgroundColor: team.color }}
-                    />
+                    {team.logoUrl ? (
+                      <img
+                        src={team.logoUrl}
+                        alt={team.name}
+                        referrerPolicy="no-referrer"
+                        className="w-7 h-7 rounded-full object-cover border border-slate-600 shrink-0"
+                      />
+                    ) : (
+                      <span
+                        className="w-4 h-4 rounded-full shrink-0 shadow-sm"
+                        style={{ backgroundColor: team.color }}
+                      />
+                    )}
                     <input
                       type="text"
                       value={team.name}
@@ -249,6 +288,77 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   </div>
                 </div>
 
+                {/* Drag-and-drop Image / Logo Box */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverTeamId(team.id);
+                  }}
+                  onDragLeave={() => setDragOverTeamId(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverTeamId(null);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      handleFileDrop(team.id, e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className={`relative p-2.5 rounded-lg border border-dashed text-center transition flex items-center justify-between gap-2 ${
+                    dragOverTeamId === team.id
+                      ? 'border-emerald-400 bg-emerald-950/40'
+                      : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {team.logoUrl ? (
+                      <img
+                        src={team.logoUrl}
+                        alt="Logo"
+                        referrerPolicy="no-referrer"
+                        className="w-8 h-8 rounded object-cover border border-slate-700 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                        <ImageIcon className="w-4 h-4" />
+                      </div>
+                    )}
+                    <div className="text-left text-[11px] truncate">
+                      <span className="text-slate-300 font-medium block truncate">
+                        {team.logoUrl ? 'Team logo actief' : 'Sleep afbeelding hierin'}
+                      </span>
+                      <span className="text-slate-500 text-[10px] block">
+                        of klik om te kiezen (geen URL nodig)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <label className="cursor-pointer px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 border border-slate-700 flex items-center gap-1">
+                      <Upload className="w-3 h-3 text-emerald-400" />
+                      <span>Kies</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleFileDrop(team.id, e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </label>
+                    {team.logoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLogo(team.id)}
+                        className="p-1 rounded text-slate-400 hover:text-rose-400"
+                        title="Logo verwijderen"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* 3 Players Input */}
                 <div className="space-y-1.5 pt-1">
                   <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
@@ -274,30 +384,23 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
-          <div className="text-xs text-slate-400 flex items-center gap-1">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Wijzigingen worden direct opgeslagen in LocalStorage</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition"
-            >
-              Annuleren
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-950/50 flex items-center gap-1.5 transition active:scale-95"
-            >
-              <Check className="w-4 h-4" />
-              Opslaan & Toepassen
-            </button>
-          </div>
+        {/* Footer actions */}
+        <div className="px-6 py-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-750 transition"
+          >
+            Annuleren
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-950/50 transition active:scale-95"
+          >
+            <Check className="w-4 h-4" />
+            Wijzigingen Opslaan
+          </button>
         </div>
 
       </div>
