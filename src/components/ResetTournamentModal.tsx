@@ -16,6 +16,7 @@ interface ResetTournamentModalProps {
   onResetScores: () => void;
   onResetAll: () => void;
   completedMatchesCount: number;
+  teamsCount?: number;
 }
 
 export const ResetTournamentModal: React.FC<ResetTournamentModalProps> = ({
@@ -24,6 +25,7 @@ export const ResetTournamentModal: React.FC<ResetTournamentModalProps> = ({
   onResetScores,
   onResetAll,
   completedMatchesCount,
+  teamsCount = 8,
 }) => {
   const [showFactoryReset, setShowFactoryReset] = useState(false);
 
@@ -75,7 +77,7 @@ export const ResetTournamentModal: React.FC<ResetTournamentModalProps> = ({
           <div className="flex items-start gap-2 text-slate-300">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Teams & spelers blijven behouden:</strong> Alle 8 teams en de ingevoerde 3 spelers per team blijven ongewijzigd.
+              <strong>Teams & spelers blijven behouden:</strong> Alle {teamsCount} teams en de ingevoerde 3 spelers per team blijven ongewijzigd.
             </span>
           </div>
           <div className="flex items-start gap-2 text-slate-300">

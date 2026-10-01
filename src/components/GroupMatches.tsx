@@ -77,9 +77,12 @@ export const GroupMatches: React.FC<GroupMatchesProps> = ({
       {/* Section Header with Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+          <h2 className="text-xl font-extrabold text-white flex items-center flex-wrap gap-2">
             <CalendarDays className="w-5 h-5 text-emerald-400" />
-            Groepswedstrijden
+            <span>Groepswedstrijden</span>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">
+              {groupMatches.length === 6 ? '6 Wedstrijden (2 poules van 3)' : '12 Wedstrijden (2 poules van 4)'}
+            </span>
           </h2>
           <p className="text-xs text-slate-400">
             {role === 'admin'

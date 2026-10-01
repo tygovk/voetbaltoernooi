@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Team } from '../types';
-import { DEFAULT_TEAMS } from '../data/defaultTournament';
+import { DEFAULT_TEAMS, DEFAULT_TEAMS_6 } from '../data/defaultTournament';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -96,19 +96,22 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     );
   };
 
+  const expectedPerGroup = draftTeams.length <= 6 ? 3 : 4;
+
   const handleResetToDefault = () => {
-    setDraftTeams(JSON.parse(JSON.stringify(DEFAULT_TEAMS)));
+    const defaultData = draftTeams.length <= 6 ? DEFAULT_TEAMS_6 : DEFAULT_TEAMS;
+    setDraftTeams(JSON.parse(JSON.stringify(defaultData)));
     setShowConfirmDefault(false);
     setErrorMessage(null);
   };
 
   const handleSave = () => {
-    // Validation: Check that both groups have 4 teams
+    // Validation: Check that both groups have expected number of teams (3 or 4)
     const groupA = draftTeams.filter((t) => t.group === 'A');
     const groupB = draftTeams.filter((t) => t.group === 'B');
 
-    if (groupA.length !== 4 || groupB.length !== 4) {
-      setErrorMessage(`Elke poule moet exact 4 teams bevatten (Groep A: ${groupA.length}, Groep B: ${groupB.length}).`);
+    if (groupA.length !== expectedPerGroup || groupB.length !== expectedPerGroup) {
+      setErrorMessage(`Elke poule moet exact ${expectedPerGroup} teams bevatten (Groep A: ${groupA.length}, Groep B: ${groupB.length}).`);
       return;
     }
 
@@ -143,7 +146,7 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-emerald-400" />
             <h3 className="text-lg font-bold text-white">
-              Teams & Spelers Beheren
+              Teams & Spelers Beheren ({draftTeams.length} Teams)
             </h3>
           </div>
           <button
@@ -167,7 +170,7 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              Groep A ({draftTeams.filter((t) => t.group === 'A').length}/4)
+              Groep A ({draftTeams.filter((t) => t.group === 'A').length}/{expectedPerGroup})
             </button>
             <button
               type="button"
@@ -178,7 +181,7 @@ export const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              Groep B ({draftTeams.filter((t) => t.group === 'B').length}/4)
+              Groep B ({draftTeams.filter((t) => t.group === 'B').length}/{expectedPerGroup})
             </button>
           </div>
 

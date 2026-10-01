@@ -4,11 +4,11 @@ import {
   RotateCcw,
   Users,
   ShieldCheck,
-  Sparkles,
   KeyRound,
   LogOut,
-  History,
+  Sparkles,
 } from 'lucide-react';
+import { TournamentFormat } from '../types';
 
 interface AdminActionBarProps {
   canUndo: boolean;
@@ -21,6 +21,8 @@ interface AdminActionBarProps {
   onAdminLogout: () => void;
   completedMatches: number;
   totalMatches: number;
+  currentFormat: TournamentFormat;
+  onSwitchFormat: (newFormat: TournamentFormat) => void;
 }
 
 export const AdminActionBar: React.FC<AdminActionBarProps> = ({
@@ -34,6 +36,8 @@ export const AdminActionBar: React.FC<AdminActionBarProps> = ({
   onAdminLogout,
   completedMatches,
   totalMatches,
+  currentFormat,
+  onSwitchFormat,
 }) => {
   return (
     <div
@@ -54,11 +58,35 @@ export const AdminActionBar: React.FC<AdminActionBarProps> = ({
               {completedMatches}/{totalMatches}
             </span>
             <span>gespeeld</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-emerald-400 font-medium">
+              {currentFormat === '6_teams' ? '6 Teams (2x3)' : '8 Teams (2x4)'}
+            </span>
           </div>
         </div>
 
         {/* Right: Quick Working Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* FORMAT SWITCH BUTTON */}
+          <button
+            id="btn-admin-switch-format"
+            type="button"
+            onClick={() => onSwitchFormat(currentFormat === '6_teams' ? '8_teams' : '6_teams')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer ${
+              currentFormat === '6_teams'
+                ? 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/50 shadow-blue-950/40'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 shadow-emerald-950/40'
+            }`}
+            title={`Schakel tussen 6 teams (2 poules van 3) en 8 teams (2 poules van 4). Halve finales en finale blijven altijd actief.`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>
+              {currentFormat === '6_teams'
+                ? 'Wissel naar 8 Teams (2 pools)'
+                : 'Wissel naar 6 Teams (2 pools)'}
+            </span>
+          </button>
+
           {/* 1. UNDO LAST RESULT BUTTON */}
           <button
             id="btn-undo-last-result"

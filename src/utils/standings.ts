@@ -410,33 +410,39 @@ export function calculateTournamentFinalRankings(
       goalDiff: sixth?.goalDifference,
       goalsFor: sixth?.goalsFor,
     },
-    {
-      rank: 7,
-      team: seventh?.team || null,
-      placeholder: 'Beste nummer 4 uit poulefase',
-      status: allGroupsDone ? 'confirmed' : 'in_progress',
-      achievement: '7e Plaats',
-      stageOrigin: seventh
-        ? `4e Groep ${seventh.team.group} (${seventh.points} pnt, DS ${seventh.goalDifference > 0 ? '+' : ''}${seventh.goalDifference})`
-        : '4e in Poule',
-      points: seventh?.points,
-      goalDiff: seventh?.goalDifference,
-      goalsFor: seventh?.goalsFor,
-    },
-    {
-      rank: 8,
-      team: eighth?.team || null,
-      placeholder: 'Tweede nummer 4 uit poulefase',
-      status: allGroupsDone ? 'confirmed' : 'in_progress',
-      achievement: '8e Plaats',
-      stageOrigin: eighth
-        ? `4e Groep ${eighth.team.group} (${eighth.points} pnt, DS ${eighth.goalDifference > 0 ? '+' : ''}${eighth.goalDifference})`
-        : '4e in Poule',
-      points: eighth?.points,
-      goalDiff: eighth?.goalDifference,
-      goalsFor: eighth?.goalsFor,
-    },
   ];
+
+  // If 8 teams (or more), include 7th and 8th ranks from 4th placed pool teams
+  if (teams.length >= 8) {
+    rankings.push(
+      {
+        rank: 7,
+        team: seventh?.team || null,
+        placeholder: 'Beste nummer 4 uit poulefase',
+        status: allGroupsDone ? 'confirmed' : 'in_progress',
+        achievement: '7e Plaats',
+        stageOrigin: seventh
+          ? `4e Groep ${seventh.team.group} (${seventh.points} pnt, DS ${seventh.goalDifference > 0 ? '+' : ''}${seventh.goalDifference})`
+          : '4e in Poule',
+        points: seventh?.points,
+        goalDiff: seventh?.goalDifference,
+        goalsFor: seventh?.goalsFor,
+      },
+      {
+        rank: 8,
+        team: eighth?.team || null,
+        placeholder: 'Tweede nummer 4 uit poulefase',
+        status: allGroupsDone ? 'confirmed' : 'in_progress',
+        achievement: '8e Plaats',
+        stageOrigin: eighth
+          ? `4e Groep ${eighth.team.group} (${eighth.points} pnt, DS ${eighth.goalDifference > 0 ? '+' : ''}${eighth.goalDifference})`
+          : '4e in Poule',
+        points: eighth?.points,
+        goalDiff: eighth?.goalDifference,
+        goalsFor: eighth?.goalsFor,
+      }
+    );
+  }
 
   return rankings;
 }

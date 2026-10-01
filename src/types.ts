@@ -82,10 +82,13 @@ export interface FinalTournamentRankingItem {
   goalsFor?: number;
 }
 
+export type TournamentFormat = '6_teams' | '8_teams';
+
 export interface TournamentData {
   name: string;
   date: string;
   location: string;
+  format?: TournamentFormat;
   teams: Team[];
   matches: Match[];
   updatedAt: number;

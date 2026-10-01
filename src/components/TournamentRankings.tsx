@@ -81,7 +81,7 @@ export const TournamentRankings: React.FC<TournamentRankingsProps> = ({
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Automatische rangorde: 1e & 2e (Grote Finale), 3e & 4e (Troostfinale), 5e t/m 8e (Poulefase)
+            Automatische rangorde: 1e & 2e (Grote Finale), 3e & 4e (Troostfinale), {rankings.length <= 6 ? '5e & 6e (Poulefase)' : '5e t/m 8e (Poulefase)'}
           </p>
         </div>
 
@@ -263,11 +263,11 @@ export const TournamentRankings: React.FC<TournamentRankingsProps> = ({
       <div className="rounded-2xl border border-slate-800 bg-slate-900/80 shadow-xl overflow-hidden">
         <div className="p-4 sm:px-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            Volledige Eindstand (1 t/m 8)
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+            Volledige Eindstand (1 t/m {rankings.length})
           </h3>
           <span className="text-xs text-slate-400">
-            {rankings.filter((r) => r.status === 'confirmed').length} van 8 posities definitief
+            {rankings.filter((r) => r.status === 'confirmed').length} van {rankings.length} posities definitief
           </span>
         </div>
 

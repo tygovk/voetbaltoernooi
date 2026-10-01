@@ -1,17 +1,21 @@
 import React from 'react';
-import { Users, Shield, Edit2 } from 'lucide-react';
-import { Team, UserRole } from '../types';
+import { Users, Shield, Edit2, RotateCw } from 'lucide-react';
+import { Team, UserRole, TournamentFormat } from '../types';
 
 interface TeamsOverviewProps {
   teams: Team[];
   role: UserRole;
   onOpenEdit: () => void;
+  currentFormat?: TournamentFormat;
+  onSwitchFormat?: (format: TournamentFormat) => void;
 }
 
 export const TeamsOverview: React.FC<TeamsOverviewProps> = ({
   teams,
   role,
   onOpenEdit,
+  currentFormat = teams.length <= 6 ? '6_teams' : '8_teams',
+  onSwitchFormat,
 }) => {
   const teamsA = teams.filter((t) => t.group === 'A');
   const teamsB = teams.filter((t) => t.group === 'B');
@@ -23,11 +27,13 @@ export const TeamsOverview: React.FC<TeamsOverviewProps> = ({
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
           Groep {groupLetter}
         </h3>
-        <span className="text-xs text-slate-400">4 Teams • 12 Spelers</span>
+        <span className="text-xs text-slate-400">
+          {groupTeams.length} Teams • {groupTeams.length * 3} Spelers
+        </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        {groupTeams.map((team, idx) => (
+        {groupTeams.map((team) => (
           <div
             key={team.id}
             className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 transition"
@@ -67,20 +73,40 @@ export const TeamsOverview: React.FC<TeamsOverviewProps> = ({
             Deelnemende Teams & Spelers
           </h2>
           <p className="text-xs text-slate-400">
-            8 teams • 3 spelers per team (3v3 toernooiopzet)
+            {teams.length} teams • 3 spelers per team (
+            {teams.length <= 6 ? '2 poules van 3 teams' : '2 poules van 4 teams'}
+            )
           </p>
         </div>
 
-        {role === 'admin' && (
-          <button
-            type="button"
-            onClick={onOpenEdit}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition self-start sm:self-auto"
-          >
-            <Edit2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Namen & Teams Bewerken</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onSwitchFormat && (
+            <button
+              id="btn-switch-format-teams-overview"
+              type="button"
+              onClick={() => onSwitchFormat(currentFormat === '6_teams' ? '8_teams' : '6_teams')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition active:scale-95 cursor-pointer"
+            >
+              <RotateCw className="w-3.5 h-3.5 text-emerald-400" />
+              <span>
+                {currentFormat === '6_teams'
+                  ? 'Wissel naar 8 Teams (2 pools)'
+                  : 'Wissel naar 6 Teams (2 pools)'}
+              </span>
+            </button>
+          )}
+
+          {role === 'admin' && (
+            <button
+              type="button"
+              onClick={onOpenEdit}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition active:scale-95"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>Namen & Teams Bewerken</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

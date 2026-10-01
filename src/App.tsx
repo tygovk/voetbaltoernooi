@@ -18,12 +18,16 @@ import {
   Match,
   Team,
   TournamentData,
+  TournamentFormat,
   UserRole,
   GoalEvent,
 } from './types';
 import {
   getDefaultTournament,
   getSampleTournamentWithResults,
+  createInitialMatches,
+  DEFAULT_TEAMS_8,
+  DEFAULT_TEAMS_6,
 } from './data/defaultTournament';
 import {
   calculateGroupStandings,
@@ -45,6 +49,7 @@ import { ScoreModal } from './components/ScoreModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { ChangePinModal } from './components/ChangePinModal';
 import { ResetTournamentModal } from './components/ResetTournamentModal';
+import { FormatSwitchModal } from './components/FormatSwitchModal';
 import { AdminActionBar } from './components/AdminActionBar';
 import { ToastNotification, ToastData } from './components/ToastNotification';
 import { sounds } from './utils/audio';
@@ -77,9 +82,13 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.teams && parsed.matches) {
+          const name = parsed.name && parsed.name !== 'Zomertoernooi 3v3 Kampioenschap' ? parsed.name : 'Het OK 2026';
+          const location = parsed.location && parsed.location !== 'Sportpark De Groene Weide' ? parsed.location : 'Sportpark Stuw 3';
+          const date = parsed.date && parsed.date !== 'Zaterdag 13 September 2025' ? parsed.date : 'Vrijdag 2 oktober 2026';
+
           // Re-synchronize knockouts in case of stale cache
           const syncedMatches = synchronizeKnockoutMatches(parsed.matches, parsed.teams);
-          return { ...parsed, matches: syncedMatches };
+          return { ...parsed, name, location, date, matches: syncedMatches };
         }
       }
     } catch (e) {
@@ -129,6 +138,8 @@ export default function App() {
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isFormatSwitchModalOpen, setIsFormatSwitchModalOpen] = useState(false);
+  const [targetFormatForModal, setTargetFormatForModal] = useState<TournamentFormat>('6_teams');
   const [selectedMatchForScoreModal, setSelectedMatchForScoreModal] = useState<Match | null>(null);
 
   // Toast notification state
@@ -194,7 +205,23 @@ export default function App() {
     const unsubscribe = subscribeToTournament(
       (remoteData) => {
         // When any device pushes an update, instantly apply it across all screens
-        setTournament(remoteData);
+        const needsUpgrade =
+          remoteData.name === 'Zomertoernooi 3v3 Kampioenschap' ||
+          remoteData.location === 'Sportpark De Groene Weide' ||
+          remoteData.date === 'Zaterdag 13 September 2025';
+
+        const updatedData: TournamentData = {
+          ...remoteData,
+          name: remoteData.name && remoteData.name !== 'Zomertoernooi 3v3 Kampioenschap' ? remoteData.name : 'Het OK 2026',
+          location: remoteData.location && remoteData.location !== 'Sportpark De Groene Weide' ? remoteData.location : 'Sportpark Stuw 3',
+          date: remoteData.date && remoteData.date !== 'Zaterdag 13 September 2025' ? remoteData.date : 'Vrijdag 2 oktober 2026',
+        };
+
+        setTournament(updatedData);
+
+        if (needsUpgrade) {
+          pushTournamentToFirestore(updatedData, setCloudSyncStatus);
+        }
       },
       () => {
         // First-time cloud init: push current tournament to Firestore
@@ -420,16 +447,80 @@ export default function App() {
     });
   };
 
+  // Current format derived from teams length
+  const currentFormat: TournamentFormat = tournament.teams.length <= 6 ? '6_teams' : '8_teams';
+
+  // Format Switch Handler (with confirmation if matches already completed)
+  const handleInitiateSwitchFormat = (requestedFormat: TournamentFormat) => {
+    if (requestedFormat === currentFormat) return;
+
+    if (completedMatches > 0) {
+      setTargetFormatForModal(requestedFormat);
+      setIsFormatSwitchModalOpen(true);
+    } else {
+      executeSwitchTournamentFormat(requestedFormat);
+    }
+  };
+
+  const executeSwitchTournamentFormat = (newFormat: TournamentFormat) => {
+    const targetCount = newFormat === '6_teams' ? 6 : 8;
+    const currentDesc = currentFormat === '6_teams' ? '6 teams' : '8 teams';
+    pushToUndoStack(`Formaat gewijzigd van ${currentDesc} naar ${targetCount} teams (2 poules van ${targetCount / 2})`);
+
+    let newTeams: Team[];
+    if (newFormat === '6_teams') {
+      const currentA = tournament.teams.filter((t) => t.group === 'A');
+      const currentB = tournament.teams.filter((t) => t.group === 'B');
+      const defaultA = DEFAULT_TEAMS_6.filter((t) => t.group === 'A');
+      const defaultB = DEFAULT_TEAMS_6.filter((t) => t.group === 'B');
+
+      const aTeams = currentA.length >= 3 ? currentA.slice(0, 3) : defaultA;
+      const bTeams = currentB.length >= 3 ? currentB.slice(0, 3) : defaultB;
+      newTeams = [...aTeams, ...bTeams];
+    } else {
+      const currentA = tournament.teams.filter((t) => t.group === 'A');
+      const currentB = tournament.teams.filter((t) => t.group === 'B');
+      const defaultA4 = DEFAULT_TEAMS_8.find((t) => t.id === 'team-4')!;
+      const defaultB4 = DEFAULT_TEAMS_8.find((t) => t.id === 'team-8')!;
+
+      const aTeams = currentA.length >= 4 ? currentA.slice(0, 4) : [...currentA, defaultA4];
+      const bTeams = currentB.length >= 4 ? currentB.slice(0, 4) : [...currentB, defaultB4];
+      newTeams = [...aTeams, ...bTeams];
+    }
+
+    const freshMatches = createInitialMatches(newTeams);
+    const synced = synchronizeKnockoutMatches(freshMatches, newTeams);
+
+    updateAndSyncTournament((prev) => ({
+      ...prev,
+      format: newFormat,
+      teams: newTeams,
+      matches: synced,
+      updatedAt: Date.now(),
+    }));
+
+    setHighlightMatchIndex(0);
+    sounds.playWhistle();
+
+    setToast({
+      id: `toast-${Date.now()}`,
+      message: `Toernooi ingesteld op ${targetCount} teams (2 poules van ${targetCount / 2})! Halve finales & finale blijven behouden.`,
+      type: 'success',
+      undoAction: handleUndoLastResult,
+      undoLabel: 'Herstel',
+    });
+  };
+
   // Full Factory Reset
   const handleResetAll = () => {
     pushToUndoStack('Volledige fabrieksreset uitgevoerd');
-    const fresh = getDefaultTournament();
+    const fresh = getDefaultTournament(currentFormat);
     const synced = synchronizeKnockoutMatches(fresh.matches, fresh.teams);
     updateAndSyncTournament(() => ({ ...fresh, matches: synced }));
     setHighlightMatchIndex(0);
     setToast({
       id: `toast-${Date.now()}`,
-      message: 'Toernooi hersteld naar standaard fabrieksinstellingen.',
+      message: `Toernooi hersteld naar standaard (${currentFormat === '6_teams' ? '6 teams' : '8 teams'}).`,
       type: 'warning',
       undoAction: handleUndoLastResult,
       undoLabel: 'Herstel',
@@ -439,12 +530,12 @@ export default function App() {
   // Load Sample Tournament Results
   const handleLoadSampleData = () => {
     pushToUndoStack('Voorbeelddata geladen');
-    const sample = getSampleTournamentWithResults();
+    const sample = getSampleTournamentWithResults(currentFormat);
     const synced = synchronizeKnockoutMatches(sample.matches, sample.teams);
     updateAndSyncTournament(() => ({ ...sample, matches: synced }));
     setToast({
       id: `toast-${Date.now()}`,
-      message: 'Voorbeelddata met uitslagen geladen.',
+      message: `Voorbeelddata voor ${currentFormat === '6_teams' ? '6 teams' : '8 teams'} geladen.`,
       type: 'info',
       undoAction: handleUndoLastResult,
       undoLabel: 'Herstel',
@@ -454,7 +545,7 @@ export default function App() {
   // Simulate Knockout Progression
   const handleSimulateKnockouts = () => {
     pushToUndoStack('Knock-out fase gesimuleerd');
-    const sample = getSampleTournamentWithResults();
+    const sample = getSampleTournamentWithResults(currentFormat);
     let currentMatches = tournament.matches.map((m) => {
       if (m.stage === 'group' && (m.homeScore === null || m.awayScore === null)) {
         const sampleM = sample.matches.find((s) => s.id === m.id);
@@ -541,6 +632,8 @@ export default function App() {
         lastUndoDescription={undoStack[undoStack.length - 1]?.description}
         onUndoLastResult={handleUndoLastResult}
         onOpenResetScoresModal={() => setIsResetModalOpen(true)}
+        currentFormat={currentFormat}
+        onSwitchFormat={handleInitiateSwitchFormat}
       />
 
       {/* Main Container */}
@@ -559,6 +652,8 @@ export default function App() {
             onAdminLogout={handleAdminLogout}
             completedMatches={completedMatches}
             totalMatches={tournament.matches.length}
+            currentFormat={currentFormat}
+            onSwitchFormat={handleInitiateSwitchFormat}
           />
         )}
 
@@ -949,6 +1044,8 @@ export default function App() {
               teams={tournament.teams}
               role={role}
               onOpenEdit={() => setIsTeamManagerOpen(true)}
+              currentFormat={currentFormat}
+              onSwitchFormat={handleInitiateSwitchFormat}
             />
           </div>
         )}
@@ -971,7 +1068,7 @@ export default function App() {
               onClick={handleLoadSampleData}
               className="text-emerald-400 hover:underline"
             >
-              Demo data laden
+              Demo data laden ({currentFormat === '6_teams' ? '6 teams' : '8 teams'})
             </button>
             <span>•</span>
             <button
@@ -1010,6 +1107,17 @@ export default function App() {
         onResetScores={handleResetScores}
         onResetAll={handleResetAll}
         completedMatchesCount={completedMatches}
+        teamsCount={tournament.teams.length}
+      />
+
+      {/* Format Switch Confirmation Modal */}
+      <FormatSwitchModal
+        isOpen={isFormatSwitchModalOpen}
+        onClose={() => setIsFormatSwitchModalOpen(false)}
+        targetFormat={targetFormatForModal}
+        currentFormat={currentFormat}
+        completedMatchesCount={completedMatches}
+        onConfirmSwitch={executeSwitchTournamentFormat}
       />
 
       {/* Admin Login Modal */}

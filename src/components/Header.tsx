@@ -20,7 +20,7 @@ import {
   RefreshCw,
   Undo2,
 } from 'lucide-react';
-import { UserRole } from '../types';
+import { UserRole, TournamentFormat } from '../types';
 import { sounds } from '../utils/audio';
 
 interface HeaderProps {
@@ -46,6 +46,8 @@ interface HeaderProps {
   lastUndoDescription?: string;
   onUndoLastResult?: () => void;
   onOpenResetScoresModal?: () => void;
+  currentFormat: TournamentFormat;
+  onSwitchFormat: (newFormat: TournamentFormat) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -71,6 +73,8 @@ export const Header: React.FC<HeaderProps> = ({
   lastUndoDescription,
   onUndoLastResult,
   onOpenResetScoresModal,
+  currentFormat,
+  onSwitchFormat,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -100,9 +104,17 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                   {tournamentName}
                 </h1>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/60 text-emerald-300 border border-emerald-700/50">
-                  8 Teams • 3v3
-                </span>
+                <button
+                  id="btn-format-toggle-header"
+                  type="button"
+                  onClick={() => onSwitchFormat(currentFormat === '6_teams' ? '8_teams' : '6_teams')}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border border-emerald-600/50 transition cursor-pointer active:scale-95 shadow-sm"
+                  title={`Huidig: ${currentFormat === '6_teams' ? '6 teams in 2 pools' : '8 teams in 2 pools'}. Klik om te wisselen naar ${currentFormat === '6_teams' ? '8 teams' : '6 teams'}!`}
+                >
+                  <Users className="w-3 h-3 text-emerald-400" />
+                  <span>{currentFormat === '6_teams' ? '6 Teams (2 x 3)' : '8 Teams (2 x 4)'}</span>
+                  <span className="text-[10px] text-emerald-300 font-mono underline ml-0.5">↺ wissel</span>
+                </button>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-0.5">
                 <span className="flex items-center gap-1">
@@ -213,6 +225,30 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
+            {/* Format Switcher Button (6 vs 8 teams) */}
+            <button
+              id="btn-header-format-switch"
+              type="button"
+              onClick={() => onSwitchFormat(currentFormat === '6_teams' ? '8_teams' : '6_teams')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm active:scale-95 cursor-pointer ${
+                currentFormat === '6_teams'
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-950/50 border border-blue-400/50'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/50 border border-emerald-400/50'
+              }`}
+              title={
+                currentFormat === '6_teams'
+                  ? 'Klik om te wisselen naar 8 teams (2 poules van 4)'
+                  : 'Klik om te wisselen naar 6 teams (2 poules van 3)'
+              }
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>
+                {currentFormat === '6_teams'
+                  ? 'Wissel naar 8 Teams'
+                  : 'Wissel naar 6 Teams'}
+              </span>
+            </button>
+
             {/* Admin Action Quick Buttons in Header */}
             {role === 'admin' && (
               <>
@@ -268,41 +304,6 @@ export const Header: React.FC<HeaderProps> = ({
               </>
             )}
 
-            {/* Undo Last Result if available */}
-            {canUndo && onUndoLastResult && (
-              <button
-                id="btn-header-undo"
-                type="button"
-                onClick={onUndoLastResult}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-950/60 border border-amber-600/40 text-xs font-semibold text-amber-300 hover:bg-amber-900/60 transition shadow"
-                title={lastUndoDescription || 'Laatste uitslag ongedaan maken'}
-              >
-                <Undo2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Herstel uitslag</span>
-                {undoCount > 1 && <span className="text-[10px] opacity-75">({undoCount})</span>}
-              </button>
-            )}
-
-            {/* Quick Toernooi op 0 button for Admin */}
-            {role === 'admin' && (
-              <button
-                id="btn-header-quick-reset"
-                type="button"
-                onClick={() => {
-                  if (onOpenResetScoresModal) {
-                    onOpenResetScoresModal();
-                  } else {
-                    onResetScores();
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 hover:text-white text-xs font-bold transition shadow cursor-pointer"
-                title="Toernooi op 0 zetten (alle uitslagen en doelpunten wissen)"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
-                <span className="hidden md:inline">Toernooi op 0</span>
-              </button>
-            )}
-
             {/* Audio Toggle */}
             <button
               id="btn-toggle-sound"
@@ -350,6 +351,22 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
                       Beheerdersinstellingen
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchFormat(currentFormat === '6_teams' ? '8_teams' : '6_teams');
+                        setShowMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-slate-200 hover:bg-slate-800 rounded-lg transition"
+                    >
+                      <Users className="w-4 h-4 text-emerald-400" />
+                      <span>
+                        {currentFormat === '6_teams'
+                          ? 'Wissel naar 8 Teams (2 poules van 4)'
+                          : 'Wissel naar 6 Teams (2 poules van 3)'}
+                      </span>
+                    </button>
 
                     <button
                       type="button"
@@ -433,7 +450,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <strong>Beheerdersmodus:</strong> Beschermd met een geheime beheerderscode. Alleen na inloggen kunnen uitslagen worden ingevuld of teams worden aangepast.
               </li>
               <li>
-                <strong>Poule-indeling:</strong> 8 teams van 3 personen, verdeeld over Groep A en Groep B (4 teams per poule).
+                <strong>Poule-indeling (Flexibel 6 of 8 teams):</strong> Met de wisselknop kun je schakelen tussen 6 teams (2 poules van 3) of 8 teams (2 poules van 4).
               </li>
               <li>
                 <strong>Rangorde Poulefase:</strong> 1. Punten (3 winst, 1 gelijk, 0 verlies), 2. Doelsaldo, 3. Doelpunten voor, 4. Onderling resultaat.
